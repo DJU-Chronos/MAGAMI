@@ -1,0 +1,9 @@
+# 사용 예정 라이브러리 — 버전은 2단계 개발 시작 시 고정한다.
+requests
+beautifulsoup4
+streamlit
+google-api-python-client
+google-auth-oauthlib
+google-genai
+python-dotenv
+pyyaml

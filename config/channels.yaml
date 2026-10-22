@@ -1,0 +1,19 @@
+# 수집할 채널 목록
+# 다른 학교에서 쓰려면 이 파일의 계정과 주소만 바꾸면 됩니다.
+# 채널을 추가하기 전에 docs/collection-policy.md 기준으로 수집 허용 여부를 확인하세요.
+
+school: 대전대학교
+
+instagram:
+  # 공식 Instagram API(Business Discovery)로 수집합니다. 프로페셔널 계정만 가능합니다.
+  - account: daejeon_univ
+    name: 대전대학교 공식
+    professional: null   # 확인 후 true / false
+    enabled: false       # 확인 완료 후 true
+
+homepages:
+  # 허용된 메인 페이지의 최신 공지 칸에서 제목·날짜·링크만 가져옵니다.
+  # - name: 사이트 이름
+  #   url: https://
+  #   robots_allowed: null
+  #   enabled: false
