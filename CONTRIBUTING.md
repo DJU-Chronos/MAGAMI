@@ -14,7 +14,7 @@
 
 | 접두어 | 용도 | 예시 |
 |---|---|---|
-| `feat/` | 기능 추가 | `feat/instagram-collector` |
+| `feat/` | 기능 추가 | `feat/homepage-collector` |
 | `fix/` | 오류 수정 | `fix/deadline-parsing` |
 | `docs/` | 문서 | `docs/channel-list` |
 | `chore/` | 설정·환경 | `chore/initial-structure` |
@@ -33,7 +33,7 @@
 | `[설정]` | 환경·설정·폴더 구조 |
 | `[테스트]` | 테스트·평가 |
 
-예시: `[기능] 인스타그램 게시물 수집기 추가 (#12)`
+예시: `[기능] 메인 공지 칸 수집기 추가 (#12)`
 
 ## Pull Request
 
