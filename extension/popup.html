@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>마감이</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <strong>마감이</strong>
+    <a href="#" id="open-options">설정</a>
+  </header>
+
+  <section id="start">
+    <p class="hint">지금 열려 있는 공지 <b>한 개</b>만 읽어 마감일을 정리합니다.</p>
+    <label class="check">
+      <input type="checkbox" id="with-capture">
+      포스터 화면도 함께 보내기 (날짜가 이미지에만 있을 때)
+    </label>
+    <button id="run" class="primary">이 공지 정리하기</button>
+  </section>
+
+  <p id="status" class="status" hidden></p>
+
+  <section id="result" hidden>
+    <p id="not-notice" class="warn" hidden>신청 기간이나 마감일이 있는 공지가 아닌 것 같습니다.</p>
+    <dl>
+      <dt>행사명</dt><dd id="r-title"></dd>
+      <dt>마감일</dt><dd id="r-deadline" class="big"></dd>
+      <dt>신청 기간</dt><dd id="r-period"></dd>
+      <dt>대상</dt><dd id="r-target"></dd>
+      <dt>신청 방법</dt><dd id="r-how"></dd>
+    </dl>
+    <p class="hint">AI 정리 결과입니다. <a id="r-url" target="_blank" rel="noopener">원문</a>과 꼭 대조하세요.</p>
+    <div class="buttons">
+      <a id="add-calendar" class="primary button" target="_blank" rel="noopener">구글 캘린더에 추가</a>
+      <button id="save-json">JSON 저장</button>
+      <button id="copy-json">JSON 복사</button>
+    </div>
+  </section>
+
+  <script src="lib.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
