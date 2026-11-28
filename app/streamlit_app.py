@@ -7,6 +7,7 @@
 - 크롬 확장에서 저장한 JSON을 올리면 같은 id 공지의 마감일이 채워진다.
 - 마감일이 없는 공지는 "미확인"으로 보여 준다.
 - 올린 JSON은 버튼 한 번으로 내 컴퓨터 data/notices.json에 합쳐 저장할 수 있다.
+- 체크한 공지는 버튼 한 번으로 내 구글 캘린더에 등록한다 (src/magami/calendar_sync.py).
 """
 
 from __future__ import annotations
@@ -18,10 +19,10 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 try:
-    from magami import store
+    from magami import calendar_sync, store
 except ImportError:  # pip install -e . 을 하지 않고 실행한 경우
     sys.path.insert(0, str(REPO_ROOT / "src"))
-    from magami import store
+    from magami import calendar_sync, store
 
 DEFAULT_URL = "https://raw.githubusercontent.com/DJU-Chronos/MAGAMI/data/notices.json"
 DEFAULT_LOCAL = REPO_ROOT / "data" / "notices.json"
@@ -89,6 +90,32 @@ def save_merged(path: Path, notices: list[dict]) -> tuple[int, int]:
     return len(merged), sum(1 for n in merged if n["id"] not in old_ids)
 
 
+ADDED, EXISTS, SKIPPED, FAILED = "등록함", "이미 등록됨", "건너뜀", "실패"
+
+
+def register(notices: list[dict], get_service) -> list[tuple[dict, str, str]]:
+    """체크한 공지를 캘린더에 등록하고 공지별 (공지, 결과, 설명)을 돌려준다.
+
+    마감일이 없는 공지는 건너뛴다. 등록할 공지가 하나도 없으면 구글 로그인도 하지 않는다.
+    get_service()의 오류(credentials.json 없음 등)는 그대로 올려 보낸다.
+    """
+    results = [(n, SKIPPED, "마감일 미확인 — 크롬 확장으로 마감일을 채운 뒤 등록하세요") for n in notices if not n.get("deadline")]
+    targets = [n for n in notices if n.get("deadline")]
+    if not targets:
+        return results
+    service = get_service()
+    for n in targets:
+        try:
+            status = calendar_sync.add_notice(service, n)
+        except Exception as exc:  # noqa: BLE001 - 공지별로 알리고 계속
+            results.append((n, FAILED, str(exc)))
+        else:
+            when = f"{n['deadline']} {n.get('deadline_time') or '(하루 종일)'}"
+            results.append((n, ADDED if status == "added" else EXISTS, when))
+    order = {ADDED: 0, EXISTS: 1, SKIPPED: 2, FAILED: 3}
+    return sorted(results, key=lambda r: order[r[1]])
+
+
 def visible(notices: list[dict], *, only_deadline: bool = False, hide_past: bool = False, today: date | None = None) -> list[dict]:
     """표에 보일 공지. 공지가 아니라고 정리된 글(is_notice false)은 항상 숨긴다."""
     today_iso = (today or today_kst()).isoformat()
@@ -154,7 +181,9 @@ def fetch_github(url: str) -> list[dict] | None:
 def main() -> None:
     import pandas as pd
     import streamlit as st
+    from dotenv import load_dotenv
 
+    load_dotenv(REPO_ROOT / ".env")  # GOOGLE_CALENDAR_ID (없으면 기본 캘린더)
     st.set_page_config(page_title="마감이 공지 체크", page_icon="📅", layout="wide")
 
     @st.cache_data(ttl=600, show_spinner="GitHub에서 공지 목록을 가져오는 중...")
@@ -250,8 +279,34 @@ def main() -> None:
     # 필터를 바꿔도 체크가 남도록, 지금 보이는 줄만 갱신한다
     checked -= set(df.index)
     checked |= set(edited.index[edited["등록"]])
+    # 필터로 숨긴 공지도 체크했다면 함께 등록한다
+    targets = [n for n in notices if n["id"] in checked]
 
-    st.caption(f"표에 {len(shown)}건 · 체크한 공지 {len(checked)}건 · 마감일 미확인 공지는 원문을 열어 크롬 확장으로 정리한 뒤 JSON을 올리세요.")
+    st.caption(f"표에 {len(shown)}건 · 체크한 공지 {len(targets)}건 · 마감일 미확인 공지는 원문을 열어 크롬 확장으로 정리한 뒤 JSON을 올리세요.")
+
+    # ---- 캘린더 등록
+    if st.button(f"📅 체크한 {len(targets)}건 구글 캘린더에 등록", key="register", type="primary", disabled=not targets):
+        with st.spinner("구글 캘린더에 등록하는 중... 처음이면 브라우저에 구글 로그인 창이 열립니다."):
+            try:
+                results = register(targets, calendar_sync.get_service)
+            except FileNotFoundError as exc:
+                st.error(f"구글 로그인 준비가 안 됐습니다. {exc}\n\n만드는 방법은 `app/README.md`의 '구글 캘린더 등록'을 보세요.")
+                return
+            except Exception as exc:  # noqa: BLE001
+                st.error(f"구글 캘린더에 연결하지 못했습니다: {exc}")
+                return
+        n_added = sum(1 for r in results if r[1] == ADDED)
+        n_exists = sum(1 for r in results if r[1] == EXISTS)
+        if n_added or n_exists:
+            st.success(f"등록 {n_added}건 · 이미 등록됨 {n_exists}건")
+        for notice, status, detail in results:
+            line = f"**{status}** · {notice.get('title') or notice['id']} — {detail}"
+            if status in (ADDED, EXISTS):
+                st.write(line)
+            elif status == SKIPPED:
+                st.warning(line)
+            else:
+                st.error(line)
 
 
 if __name__ == "__main__":

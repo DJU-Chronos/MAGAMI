@@ -2,6 +2,7 @@
 
 import importlib.util
 import json
+import sys
 import tempfile
 import unittest
 from datetime import date
@@ -9,6 +10,8 @@ from pathlib import Path
 from unittest import mock
 
 APP_PATH = Path(__file__).resolve().parents[1] / "app" / "streamlit_app.py"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from test_calendar_sync import FakeService  # noqa: E402  가짜 구글 캘린더
 
 spec = importlib.util.spec_from_file_location("streamlit_app", APP_PATH)
 app = importlib.util.module_from_spec(spec)
@@ -112,6 +115,43 @@ class SaveMergedTest(unittest.TestCase):
             self.assertEqual(app.display_path(Path(tmp) / "내공지.json"), "내공지.json")
 
 
+class RegisterTest(unittest.TestCase):
+    def test_added_then_exists(self):
+        service = FakeService()
+        targets = [notice("a", deadline="2026-12-05", deadline_time="18:00"), notice("b", deadline="2026-12-07")]
+        first = app.register(targets, lambda: service)
+        self.assertEqual([(n["id"], s) for n, s, _ in first], [("a", app.ADDED), ("b", app.ADDED)])
+        self.assertEqual(first[0][2], "2026-12-05 18:00")
+        self.assertEqual(first[1][2], "2026-12-07 (하루 종일)")
+        second = app.register(targets, lambda: service)
+        self.assertEqual([s for _, s, _ in second], [app.EXISTS, app.EXISTS])
+        self.assertEqual(len(service.store["events"]), 2)  # 두 번 눌러도 일정은 2개
+
+    def test_no_deadline_is_skipped(self):
+        service = FakeService()
+        results = app.register([notice("unknown"), notice("a", deadline="2026-12-05")], lambda: service)
+        self.assertEqual([(n["id"], s) for n, s, _ in results], [("a", app.ADDED), ("unknown", app.SKIPPED)])
+        self.assertEqual(len(service.store["events"]), 1)
+
+    def test_no_login_when_nothing_to_register(self):
+        get_service = mock.Mock()
+        results = app.register([notice("unknown")], get_service)
+        get_service.assert_not_called()
+        self.assertEqual(results[0][1], app.SKIPPED)
+
+    def test_one_failure_does_not_stop_others(self):
+        service = FakeService()
+        results = app.register([notice("bad", deadline="2026-12-05", deadline_time="25:00"), notice("a", deadline="2026-12-05")], lambda: service)
+        self.assertEqual([(n["id"], s) for n, s, _ in results], [("a", app.ADDED), ("bad", app.FAILED)])
+
+    def test_login_error_is_raised(self):
+        def no_credentials():
+            raise FileNotFoundError("credentials.json 가 없습니다")
+
+        with self.assertRaises(FileNotFoundError):
+            app.register([notice("a", deadline="2026-12-05")], no_credentials)
+
+
 class VisibleTest(unittest.TestCase):
     TODAY = date(2026, 11, 28)
     NOTICES = [
@@ -212,6 +252,39 @@ class ScreenTest(unittest.TestCase):
         self.run_app(FakeResponse(200, self.GITHUB_DATA))
         self.assertIn("표에 1건", self.at.caption[0].value)
         self.assertEqual(self.metrics(), ["3", "2", "1"])  # 위쪽 숫자는 필터와 상관없이 전체
+
+    def test_register_button_disabled_without_checks(self):
+        self.run_app(FakeResponse(200, self.GITHUB_DATA))
+        button = self.at.button(key="register")
+        self.assertTrue(button.disabled)
+        self.assertIn("체크한 0건", button.label)
+
+    def test_register_checked(self):
+        service = FakeService()
+        self.at.session_state["checked"] = {"a", "b"}  # a: 마감일 있음, b: 미확인
+        self.run_app(FakeResponse(200, self.GITHUB_DATA))
+        self.assertIn("체크한 2건", self.at.button(key="register").label)
+
+        with mock.patch("magami.calendar_sync.get_service", return_value=service):
+            self.at.button(key="register").click()
+            self.run_app(FakeResponse(200, self.GITHUB_DATA))
+        self.assertIn("등록 1건 · 이미 등록됨 0건", self.at.success[0].value)
+        self.assertIn("마감일 미확인", self.at.warning[1].value)  # [0]은 원문 대조 안내
+        self.assertEqual(len(service.store["events"]), 1)
+
+        with mock.patch("magami.calendar_sync.get_service", return_value=service):
+            self.at.button(key="register").click()
+            self.run_app(FakeResponse(200, self.GITHUB_DATA))
+        self.assertIn("등록 0건 · 이미 등록됨 1건", self.at.success[0].value)
+        self.assertEqual(len(service.store["events"]), 1)
+
+    def test_register_without_credentials(self):
+        self.at.session_state["checked"] = {"a"}
+        self.run_app(FakeResponse(200, self.GITHUB_DATA))
+        with mock.patch("magami.calendar_sync.get_service", side_effect=FileNotFoundError("credentials.json 가 없습니다.")):
+            self.at.button(key="register").click()
+            self.run_app(FakeResponse(200, self.GITHUB_DATA))
+        self.assertIn("구글 로그인 준비가 안 됐습니다", self.at.error[0].value)
 
     def test_local_source(self):
         with tempfile.TemporaryDirectory() as tmp:
