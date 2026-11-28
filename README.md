@@ -19,7 +19,18 @@
 
 대학의 비교과 프로그램·공모전 소식은 학교 홈페이지, 사업단 홈페이지, 대학 공식 인스타그램, 사업단 인스타그램 등 여러 채널에 나뉘어 올라온다. 마감일은 공지 본문이나 포스터 이미지 안에 있어 직접 읽어야 하고, 확인한 일정은 다시 손으로 캘린더에 옮겨야 한다. 그래서 신청 기간을 놓치는 일이 생긴다.
 
-## 3. 동작 방식
+## 3. 주요 기능
+
+| 기능 | 설명 | 상태 |
+|---|---|---|
+| 공통 AI 정리 | 공지 본문·포스터에서 공지 여부, 행사명·신청 기간·마감일·대상·신청 방법을 정리 ([`prompts/`](prompts/)) | ✅ |
+| 프롬프트 방식 | 설치 없이 AI 채팅에 붙여넣어 사용 (인스타그램 게시물 포함) | ✅ |
+| 크롬 확장 프로그램 | 사용자가 연 공지에서 버튼 한 번 → 결과 확인·수정 → 구글 캘린더 추가·내 마감 목록 | ✅ |
+| 매일 자동 수집 + 새 공지 메일 | 허용된 사업단 메인 공지 칸을 하루 1회 확인하고 새 공지를 이메일로 알림 | ✅ |
+| 공지 체크 화면 + 캘린더 일괄 등록 | 공지 목록을 원문 링크와 함께 보고 체크한 것만 구글 캘린더에 등록 | 🚧 |
+| 정확도 평가 | 실제 공지 30건 기준 마감일 정확도 측정 | 🚧 |
+
+## 4. 동작 방식
 
 ```
  ① 자동 (하루 1회)              ② 크롬 확장 프로그램            ③ 프롬프트 방식
@@ -40,7 +51,7 @@
 
 > 활동계획서와 달라진 점(홈페이지 본문·인스타그램 자동 수집 제외, 크롬 확장 추가)과 그 근거는 [`docs/decisions.md`](docs/decisions.md)에 정리했다.
 
-## 4. 사용 방법
+## 5. 사용 방법
 
 > 🚧 개발 중입니다. 각 방식은 준비되는 대로 공개합니다.
 
@@ -54,11 +65,11 @@
 레포를 fork하고 GitHub Actions를 켜면 매일 새 공지를 이메일로 알려 준다 ([`docs/daily-automation.md`](docs/daily-automation.md)). 체크 화면(Streamlit)에서 원하는 공지를 골라 캘린더에 등록한다.
 AI 에이전트(Claude Code 등)에게 "이 레포 안내대로 설치해 줘"라고 요청해도 된다. API 키 입력과 구글 계정 연결처럼 개인 정보가 필요한 단계는 직접 진행한다. — *설치 안내서 추가 예정*
 
-## 5. 우리 학교에 맞게 바꾸기
+## 6. 우리 학교에 맞게 바꾸기
 
 [`config/channels.yaml`](config/channels.yaml)의 홈페이지 주소만 바꾸면 다른 학교에서도 쓸 수 있도록 만든다. 크롬 확장과 프롬프트 방식은 학교와 상관없이 쓸 수 있다.
 
-## 6. 수집 원칙
+## 7. 수집 원칙
 
 - 홈페이지는 `robots.txt`와 이용약관을 확인하고 **허용된 범위에서만** 수집한다. 확인 결과는 [`docs/collection-policy.md`](docs/collection-policy.md)에 기록한다.
 - 대학 홈페이지 공지 목록·본문은 **자동으로 수집하지 않는다.** 메인 페이지 최신 공지 칸의 제목·날짜·링크만 가져온다.
@@ -67,7 +78,7 @@ AI 에이전트(Claude Code 등)에게 "이 레포 안내대로 설치해 줘"�
 - 게시물 속 개인 연락처 등 개인정보는 저장하지 않으며, 원문 전체가 아닌 **정리한 정보와 원문 링크만** 보관한다.
 - AI가 정리한 결과는 항상 원문 링크와 함께 보여 주어 사용자가 직접 대조할 수 있게 한다.
 
-## 7. 기술 스택
+## 8. 기술 스택
 
 | 구분 | 내용 |
 |---|---|
@@ -81,7 +92,7 @@ AI 에이전트(Claude Code 등)에게 "이 레포 안내대로 설치해 줘"�
 
 사용 오픈소스와 라이선스는 [`docs/oss-license-check.md`](docs/oss-license-check.md)에 정리한다.
 
-## 8. 폴더 구조
+## 9. 폴더 구조
 
 ```text
 MAGAMI/
@@ -97,12 +108,27 @@ MAGAMI/
 └─ assets/        이미지 등
 ```
 
-## 9. 목표 지표
+## 10. 목표 지표
 
 - 실제 공지 30건 기준 **마감일 정리 정확도 90% 이상** — 정의는 [`docs/schema.md`](docs/schema.md)
 - 팀 외부 학생 **5명이 레포 안내만으로** 자기 캘린더 자동화 구현 — 확인 방법은 [`docs/decisions.md`](docs/decisions.md) D5
 
-## 10. 팀
+## 11. 빠른 실행 (개발자용)
+
+```bash
+git clone https://github.com/DJU-Chronos/MAGAMI.git
+cd MAGAMI
+pip install -r requirements.txt
+pip install -e .
+python -m unittest discover -s tests      # 테스트
+python -m magami.daily --dry-run          # 메인 공지 칸 수집 결과만 보기 (저장·알림 없음)
+```
+
+- 크롬 확장 설치: [`extension/README.md`](extension/README.md)
+- 매일 자동 실행·메일 알림 설정: [`docs/daily-automation.md`](docs/daily-automation.md)
+- API 키는 `.env`(로컬)와 GitHub Secrets에만 넣는다. `.env.example` 참고
+
+## 12. 팀
 
 | 이름 | GitHub | 담당 |
 |---|---|---|
@@ -111,3 +137,15 @@ MAGAMI/
 | 윤재원 | [@conelius17](https://github.com/conelius17) | 정답 자료·정확도 평가, 안내서·에이전트용 안내 파일, 설치 평가 |
 
 협업 규칙은 [CONTRIBUTING.md](CONTRIBUTING.md)를 따른다.
+
+## 13. 참고 자료
+
+| 문서 | 내용 |
+|---|---|
+| [`docs/project-plan.md`](docs/project-plan.md) | 사업단에 제출한 활동계획서 요약 |
+| [`docs/decisions.md`](docs/decisions.md) | 계획서와 달라진 점과 근거 |
+| [`docs/collection-policy.md`](docs/collection-policy.md) | 채널별 수집 허용 여부, 크롬 확장 원칙 |
+| [`docs/schema.md`](docs/schema.md) | 공지 데이터 형식, 정확도 기준 |
+| [`docs/oss-license-check.md`](docs/oss-license-check.md) | 사용 오픈소스와 라이선스 |
+| [`docs/weekly-log.md`](docs/weekly-log.md) · [Wiki](https://github.com/DJU-Chronos/MAGAMI/wiki) | 주간 기록 · 회의록 |
+| [`reports/`](reports/) | 결과보고서, 발표자료 |
