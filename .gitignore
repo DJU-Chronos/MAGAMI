@@ -218,3 +218,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# 마감이: 정확도 평가용 공지 원문은 레포에 올리지 않는다 (원문 전체 저장 금지)
+data/raw/
+
+# 마감이: 구글 로그인 토큰
+token.json
+credentials.json
