@@ -6,28 +6,28 @@ AI 정리 결과와 정답 자료(`data/ground_truth/`)는 **같은 형식**을 
 
 ```json
 {
-  "id": "instagram_daejeon_univ_3412345",
-  "source": "instagram",
-  "channel": "@daejeon_univ",
-  "url": "https://www.instagram.com/p/XXXX/",
-  "posted_at": "2026-10-13",
+  "id": "homepage_sw_12345",
+  "source": "extension",
+  "channel": "SW중심대학사업단",
+  "url": "https://www.dju.ac.kr/sw/na/ntt/selectNttInfo.do?nttSn=12345",
+  "posted_at": "2026-09-30",
   "is_notice": true,
   "title": "2026 AI·OSS 프로젝트 동아리 모집",
   "apply_start": "2026-09-30",
-  "apply_end": "2026-10-11",
-  "deadline": "2026-10-11",
+  "apply_end": "2026-10-05",
+  "deadline": "2026-10-05",
   "deadline_time": null,
   "target": "SW융합대학 재학생",
   "how_to_apply": "신청서 작성 후 이메일 제출",
-  "collected_at": "2026-10-14T09:00:00+09:00"
+  "collected_at": "2026-10-01T09:00:00+09:00"
 }
 ```
 
 | 필드 | 설명 | 값 규칙 |
 |---|---|---|
-| `id` | 공지 고유 번호 | `출처_채널_게시물번호` |
-| `source` | 출처 종류 | `instagram` 또는 `homepage` |
-| `channel` | 채널 이름 | 인스타그램은 `@계정`, 홈페이지는 사이트 이름 |
+| `id` | 공지 고유 번호 | 원문 링크로 만든다 (예: 학교 홈페이지 `homepage_sw_12345`, 인스타그램 `instagram_ABC123`, 그 밖의 사이트 `web_해시`). 같은 공지는 어느 경로로 들어와도 같은 `id` |
+| `source` | 들어온 경로 | `auto`(메인 공지 칸 자동 수집), `extension`(크롬 확장), `prompt`(프롬프트 방식) |
+| `channel` | 채널 이름 | 홈페이지는 사이트 이름, 인스타그램은 `@계정` |
 | `url` | 원문 링크 | 항상 포함 |
 | `posted_at` | 게시일 | `YYYY-MM-DD` |
 | `is_notice` | 신청 기간·마감일이 있는 공지인지 | `true` / `false` (홍보 영상 등은 `false`) |
@@ -38,9 +38,11 @@ AI 정리 결과와 정답 자료(`data/ground_truth/`)는 **같은 형식**을 
 | `deadline_time` | 마감 시각 | `HH:MM`, 없으면 `null` |
 | `target` | 대상 | 문자열 |
 | `how_to_apply` | 신청 방법 | 문자열 (개인 연락처는 넣지 않음) |
-| `collected_at` | 수집 시각 | ISO 8601, 한국 시간(+09:00) |
+| `collected_at` | 수집·정리 시각 | ISO 8601, 한국 시간(+09:00) |
 
 - 날짜는 모두 한국 시간 기준이다.
+- 메인 공지 칸 자동 수집(`auto`)은 제목·날짜·링크만 얻으므로, 본문을 정리하기 전까지 `deadline` 등은 `null`이다. 체크 화면에서는 "마감일 미확인"으로 보여 준다.
+- 원문 본문은 이 형식에 넣지 않는다. 정리한 항목과 원문 링크만 저장한다.
 - 게시물에 연도가 없으면 게시일 기준으로 가장 가까운 미래 날짜로 해석한다.
 
 ## 정확도 기준
