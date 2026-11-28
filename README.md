@@ -51,7 +51,7 @@
 공지 페이지를 연 상태에서 확장 버튼을 누르면 AI가 마감일을 정리하고, 구글 캘린더에 바로 추가할 수 있다. 버튼을 누른 탭 하나만 읽는다. 설치·사용법은 [`extension/README.md`](extension/README.md).
 
 ### 방법 C. 매일 자동 알림 + 체크 화면
-레포를 fork하고 GitHub Actions를 켜면 매일 새 공지를 알려 준다. 체크 화면(Streamlit)에서 원하는 공지를 골라 캘린더에 등록한다.
+레포를 fork하고 GitHub Actions를 켜면 매일 새 공지를 이메일로 알려 준다 ([`docs/daily-automation.md`](docs/daily-automation.md)). 체크 화면(Streamlit)에서 원하는 공지를 골라 캘린더에 등록한다.
 AI 에이전트(Claude Code 등)에게 "이 레포 안내대로 설치해 줘"라고 요청해도 된다. API 키 입력과 구글 계정 연결처럼 개인 정보가 필요한 단계는 직접 진행한다. — *설치 안내서 추가 예정*
 
 ## 5. 우리 학교에 맞게 바꾸기
