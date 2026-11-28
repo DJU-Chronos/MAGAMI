@@ -13,6 +13,7 @@ homepages:
   #   url: https://
   #   robots_allowed: null   # 확인 후 true / false
   #   enabled: false         # 확인 완료 후 true
+  #   tab: 공지사항          # (선택) 메인 페이지 공지 칸의 제목이 '공지사항'이 아니면 적기
   - name: SW중심대학사업단
     url: https://www.dju.ac.kr/sw/main.do
     robots_allowed: true
@@ -25,6 +26,7 @@ homepages:
     url: https://www.dju.ac.kr/inno/main.do
     robots_allowed: true
     enabled: true
+    tab: 사업단소식          # 이 사이트는 공지 칸 제목이 '사업단소식'
   - name: HRD사업단
     url: https://www.dju.ac.kr/hrd/main.do
     robots_allowed: true
