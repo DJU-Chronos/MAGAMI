@@ -17,3 +17,27 @@ homepages:
   #   url: https://
   #   robots_allowed: null
   #   enabled: false
+  - name: SW중심대학사업단
+    url: https://www.dju.ac.kr/sw/main.do
+    robots_allowed: true
+    enabled: true
+  - name: 앵커사업단(RISE)
+    url: https://www.dju.ac.kr/djurise/main.do
+    robots_allowed: true
+    enabled: true
+  - name: 대학혁신지원사업
+    url: https://www.dju.ac.kr/inno/main.do
+    robots_allowed: true
+    enabled: true
+  - name: HRD사업단
+    url: https://www.dju.ac.kr/hrd/main.do
+    robots_allowed: true
+    enabled: true
+  - name: 바이오헬스혁신융합대학사업단
+    url: https://www.dju.ac.kr/biohealth/main.do
+    robots_allowed: true
+    enabled: true
+  - name: 사물인터넷혁신융합대학사업단
+    url: https://www.dju.ac.kr/IoTCOSS/main.do
+    robots_allowed: true
+    enabled: true
