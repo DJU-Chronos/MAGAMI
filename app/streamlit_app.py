@@ -6,6 +6,7 @@
 - 목록: GitHub data 브랜치(매일 자동 수집 결과) 또는 내 컴퓨터 data/notices.json
 - 크롬 확장에서 저장한 JSON을 올리면 같은 id 공지의 마감일이 채워진다.
 - 마감일이 없는 공지는 "미확인"으로 보여 준다.
+- 올린 JSON은 버튼 한 번으로 내 컴퓨터 data/notices.json에 합쳐 저장할 수 있다.
 """
 
 from __future__ import annotations
@@ -64,6 +65,28 @@ def combine(base: list[dict], uploads: list[list[dict]]) -> list[dict]:
     for notices in uploads:
         extension = store.merge(notices, extension)[0]
     return store.merge(extension, base)[0]
+
+
+def display_path(path: Path) -> str:
+    """레포 안의 파일은 data/notices.json처럼, 밖의 파일은 파일 이름만 짧게 보여 준다."""
+    try:
+        return Path(path).resolve().relative_to(REPO_ROOT).as_posix()
+    except ValueError:
+        return Path(path).name
+
+
+def save_merged(path: Path, notices: list[dict]) -> tuple[int, int]:
+    """notices를 path 파일에 합쳐 저장한다. 파일에 있던 공지는 지우지 않는다.
+
+    같은 공지는 notices 쪽 값이 이기고, 비어 있는 칸만 파일 쪽에서 채운다.
+    (저장 후 공지 수, 파일에 새로 들어간 공지 수)를 돌려준다.
+    """
+    path = Path(path)
+    existing = store.load(path)
+    old_ids = {n["id"] for n in existing}
+    merged = store.merge(notices, existing)[0]
+    store.save(path, merged)
+    return len(merged), sum(1 for n in merged if n["id"] not in old_ids)
 
 
 def visible(notices: list[dict], *, only_deadline: bool = False, hide_past: bool = False, today: date | None = None) -> list[dict]:
@@ -187,6 +210,15 @@ def main() -> None:
     notices = combine(base, uploads)
     if uploads:
         st.success(f"확장 JSON {len(uploads)}개 ({sum(len(u) for u in uploads)}건)를 목록에 합쳤습니다.")
+        save_path = Path(local_path) if source == SOURCE_LOCAL else DEFAULT_LOCAL
+        if st.button(f"💾 {display_path(save_path)}에 합쳐 저장", key="save",
+                     help="지금 목록(올린 JSON 포함)을 이 파일에 합칩니다. 파일에 있던 공지는 지우지 않습니다."):
+            try:
+                total, added = save_merged(save_path, notices)
+            except Exception as exc:  # noqa: BLE001
+                st.error(f"저장하지 못했습니다: {exc}")
+            else:
+                st.success(f"{display_path(save_path)}에 저장했습니다. 공지 {total}건 (새로 추가 {added}건)")
 
     # ---- 숫자
     total, known, unknown = counts(notices)

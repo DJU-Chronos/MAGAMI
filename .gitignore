@@ -225,3 +225,6 @@ data/raw/
 # 마감이: 구글 로그인 토큰
 token.json
 credentials.json
+
+# 마감이: 각자 컴퓨터의 공지 목록 (자동 수집 결과는 data 브랜치에 있음)
+data/notices.json

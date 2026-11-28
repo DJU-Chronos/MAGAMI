@@ -77,6 +77,41 @@ class CombineTest(unittest.TestCase):
         self.assertIsNone(base[0]["deadline"])
 
 
+class SaveMergedTest(unittest.TestCase):
+    def test_new_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "data" / "notices.json"
+            self.assertEqual(app.save_merged(path, [notice("a"), notice("b")]), (2, 2))
+            self.assertEqual({n["id"] for n in json.loads(path.read_text(encoding="utf-8"))}, {"a", "b"})
+
+    def test_keeps_existing_and_screen_value_wins(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "notices.json"
+            path.write_text(json.dumps([
+                notice("old"),
+                notice("a", deadline="2026-12-01", target="재학생"),
+            ]), encoding="utf-8")
+            total, added = app.save_merged(path, [notice("a", deadline="2026-12-05"), notice("new")])
+            self.assertEqual((total, added), (3, 1))
+            saved = {n["id"]: n for n in json.loads(path.read_text(encoding="utf-8"))}
+            self.assertEqual(set(saved), {"old", "a", "new"})  # 파일에 있던 공지는 남는다
+            self.assertEqual(saved["a"]["deadline"], "2026-12-05")  # 화면(올린 JSON) 쪽이 이긴다
+            self.assertEqual(saved["a"]["target"], "재학생")  # 빈 칸은 파일 쪽에서 채운다
+
+    def test_broken_file_is_not_overwritten(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "notices.json"
+            path.write_text('{"not": "a list"}', encoding="utf-8")
+            with self.assertRaises(ValueError):
+                app.save_merged(path, [notice("a")])
+            self.assertEqual(path.read_text(encoding="utf-8"), '{"not": "a list"}')
+
+    def test_display_path(self):
+        self.assertEqual(app.display_path(app.DEFAULT_LOCAL), "data/notices.json")
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(app.display_path(Path(tmp) / "내공지.json"), "내공지.json")
+
+
 class VisibleTest(unittest.TestCase):
     TODAY = date(2026, 11, 28)
     NOTICES = [
