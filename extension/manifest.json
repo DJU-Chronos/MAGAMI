@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "마감이",
+  "version": "0.1.0",
+  "description": "지금 연 공지에서 신청 기간·마감일을 AI로 정리하고 구글 캘린더에 추가합니다.",
+  "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": ["https://generativelanguage.googleapis.com/*"],
+  "action": {
+    "default_title": "마감이: 이 공지 정리하기",
+    "default_popup": "popup.html"
+  },
+  "options_page": "options.html"
+}
