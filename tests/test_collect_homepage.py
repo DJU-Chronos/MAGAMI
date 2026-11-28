@@ -211,5 +211,88 @@ class ParseMainPageTest(unittest.TestCase):
         self.assertFalse(any("selectNttList" in u for u in urls))
 
 
+# ---------------------------------------------------------------- collect (가짜 session)
+
+
+class FakeResponse:
+    def __init__(self, text, status_code=200):
+        self.text, self.status_code, self.encoding = text, status_code, "utf-8"
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise RuntimeError(f"HTTP {self.status_code}")
+
+
+class FakeSession:
+    """요청한 주소를 기록하고, 정해 둔 응답을 돌려준다."""
+
+    def __init__(self, pages):
+        self.pages, self.requested, self.headers = pages, [], []
+
+    def get(self, url, headers=None, timeout=None):
+        self.requested.append(url)
+        self.headers.append(headers or {})
+        if url not in self.pages:
+            return FakeResponse("", 404)
+        return FakeResponse(self.pages[url])
+
+
+class CollectTest(unittest.TestCase):
+    def setUp(self):
+        ch._robots_cache.clear()
+        self.session = FakeSession({
+            "https://www.dju.ac.kr/robots.txt": DJU_ROBOTS,
+            "https://www.dju.ac.kr/sw/main.do": PAGE_DATE_CLASS,
+            "https://www.dju.ac.kr/inno/main.do": PAGE_OTHER_TAB,
+        })
+
+    def test_collects_main_page_only(self):
+        channel = {"name": "SW중심대학사업단", "url": "https://www.dju.ac.kr/sw/main.do"}
+        notices = ch.collect(channel, session=self.session, today=TODAY)
+        self.assertEqual(len(notices), 2)
+        self.assertEqual(
+            self.session.requested,
+            ["https://www.dju.ac.kr/robots.txt", "https://www.dju.ac.kr/sw/main.do"],
+        )
+        # 공지 목록·본문(/*/na/ntt/)은 요청하지 않는다
+        self.assertFalse(any("/na/ntt/" in u for u in self.session.requested))
+        self.assertIn("MAGAMI", self.session.headers[1]["User-Agent"])
+        self.assertIn("github.com/DJU-Chronos/MAGAMI", self.session.headers[1]["User-Agent"])
+
+    def test_tab_from_channel_and_robots_cached(self):
+        ch.collect({"name": "SW", "url": "https://www.dju.ac.kr/sw/main.do"}, session=self.session, today=TODAY)
+        notices = ch.collect(
+            {"name": "대학혁신지원사업", "url": "https://www.dju.ac.kr/inno/main.do", "tab": "사업단소식"},
+            session=self.session, today=TODAY,
+        )
+        self.assertEqual(notices[0]["channel"], "대학혁신지원사업")
+        self.assertEqual(self.session.requested.count("https://www.dju.ac.kr/robots.txt"), 1)
+
+    def test_blocked_url_raises_without_request(self):
+        channel = {"name": "게시판", "url": "https://www.dju.ac.kr/sw/na/ntt/selectNttList.do?bbsId=2758"}
+        with self.assertRaises(PermissionError):
+            ch.collect(channel, session=self.session, today=TODAY)
+        self.assertEqual(self.session.requested, ["https://www.dju.ac.kr/robots.txt"])
+
+    def test_no_robots_file_means_allowed(self):
+        session = FakeSession({"https://example.ac.kr/main.do": PAGE_DATE_CLASS})
+        notices = ch.collect({"name": "예시", "url": "https://example.ac.kr/main.do"}, session=session, today=TODAY)
+        self.assertEqual(len(notices), 2)
+
+    def test_load_channels_filters_enabled_and_allowed(self):
+        import tempfile
+
+        text = "\n".join([
+            "homepages:",
+            "  - {name: A, url: 'https://a/main.do', robots_allowed: true, enabled: true}",
+            "  - {name: B, url: 'https://b/main.do', robots_allowed: true, enabled: false}",
+            "  - {name: C, url: 'https://c/main.do', robots_allowed: false, enabled: true}",
+        ])
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "channels.yaml"
+            path.write_text(text, encoding="utf-8")
+            self.assertEqual([c["name"] for c in ch.load_channels(path)], ["A"])
+
+
 if __name__ == "__main__":
     unittest.main()

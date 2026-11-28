@@ -7,11 +7,21 @@
 
 from __future__ import annotations
 
+import argparse
+import json
 import re
+import sys
+import time
 from datetime import date
-from urllib.parse import urljoin
+from pathlib import Path
+from urllib.parse import urljoin, urlparse
 
 from .extract import make_notice
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+CHANNELS_PATH = REPO_ROOT / "config" / "channels.yaml"
+USER_AGENT = "MAGAMI/0.1 (student project; +https://github.com/DJU-Chronos/MAGAMI)"
+TIMEOUT = 15  # 초
 
 # ---------------------------------------------------------------- robots.txt
 
@@ -190,3 +200,104 @@ def parse_main_page(html: str, base_url: str, channel: str, tab: str = DEFAULT_T
             )
         )
     return notices
+
+
+# ---------------------------------------------------------------- 수집
+
+_robots_cache: dict[str, list[tuple[str, str]]] = {}  # 사이트별 robots.txt 규칙 (한 번 실행하는 동안만)
+
+
+def _session(session):
+    if session is not None:
+        return session
+    import requests
+
+    return requests.Session()
+
+
+def robots_rules(site: str, session=None) -> list[tuple[str, str]]:
+    """사이트(예: https://www.dju.ac.kr)의 robots.txt 규칙. 같은 사이트는 한 번만 요청한다."""
+    if site not in _robots_cache:
+        res = _session(session).get(f"{site}/robots.txt", headers={"User-Agent": USER_AGENT}, timeout=TIMEOUT)
+        if res.status_code == 404:
+            rules = []  # robots.txt가 없으면 이용약관 기준 (docs/collection-policy.md)
+        else:
+            res.raise_for_status()
+            rules = parse_robots(res.text)
+        _robots_cache[site] = rules
+    return _robots_cache[site]
+
+
+def collect(channel: dict, session=None, today: date | None = None) -> list[dict]:
+    """채널(config/channels.yaml의 homepages 항목 하나)의 메인 공지 칸을 가져온다.
+
+    robots.txt 확인 → 허용되지 않으면 PermissionError → 메인 페이지 1번만 요청 → 파싱.
+    공지 글 주소는 저장만 하고 열지 않는다.
+    """
+    url = channel["url"]
+    parsed = urlparse(url)
+    site = f"{parsed.scheme}://{parsed.netloc}"
+    path = parsed.path + (f"?{parsed.query}" if parsed.query else "")
+    if not robots_allows(robots_rules(site, session), path):
+        raise PermissionError(f"robots.txt가 이 주소의 수집을 허용하지 않습니다: {url}")
+
+    res = _session(session).get(url, headers={"User-Agent": USER_AGENT}, timeout=TIMEOUT)
+    res.raise_for_status()
+    if not res.encoding or res.encoding.lower() == "iso-8859-1":
+        res.encoding = "utf-8"
+    return parse_main_page(
+        res.text,
+        url,
+        channel.get("name"),
+        tab=channel.get("tab") or DEFAULT_TAB,
+        today=today,
+    )
+
+
+# ---------------------------------------------------------------- 명령줄
+
+
+def load_channels(path: Path = CHANNELS_PATH) -> list[dict]:
+    import yaml
+
+    data = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
+    return [c for c in data.get("homepages") or [] if c.get("enabled") and c.get("robots_allowed")]
+
+
+def main(argv=None) -> int:
+    parser = argparse.ArgumentParser(description="허용된 메인 페이지의 최신 공지 칸을 한 번 가져와 보여 줍니다.")
+    parser.add_argument("--channels", default=str(CHANNELS_PATH), help="채널 목록 파일 (기본 config/channels.yaml)")
+    parser.add_argument("--json", action="store_true", help="결과를 JSON으로 출력")
+    args = parser.parse_args(argv)
+    sys.stdout.reconfigure(encoding="utf-8")
+
+    channels = load_channels(Path(args.channels))
+    if not channels:
+        print("수집할 채널이 없습니다. channels.yaml에서 enabled·robots_allowed를 확인하세요.")
+        return 0
+
+    everything, failed = [], 0
+    for i, channel in enumerate(channels):
+        if i:
+            time.sleep(1)  # 같은 사이트에 연달아 요청하지 않도록
+        try:
+            notices = collect(channel)
+        except Exception as exc:  # noqa: BLE001 - 채널별로 알리고 계속
+            failed += 1
+            print(f"[오류] {channel.get('name')}: {exc}", file=sys.stderr)
+            continue
+        everything.extend(notices)
+        if not args.json:
+            print(f"■ {channel.get('name')} — {len(notices)}건")
+            for n in notices:
+                print(f"  {n['posted_at'] or '날짜 없음'} | {n['title']} | {n['url']}")
+
+    if args.json:
+        print(json.dumps(everything, ensure_ascii=False, indent=2))
+    else:
+        print(f"채널 {len(channels)}곳 · 공지 {len(everything)}건 · 실패 {failed}곳")
+    return 1 if failed and failed == len(channels) else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
