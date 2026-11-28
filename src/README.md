@@ -12,6 +12,7 @@
 | 파일 | 하는 일 |
 |---|---|
 | `magami/daily.py` | 하루 1회 실행: 메인 공지 칸 수집 → 저장 → 새 공지 알림 ([`docs/daily-automation.md`](../docs/daily-automation.md)) |
+| `magami/collect_homepage.py` | 허용된 메인 페이지의 공지 칸에서 제목·게시일·링크 수집 (robots.txt 확인, 아래 설명) |
 | `magami/store.py` | `notices.json` 읽기·쓰기, 새 공지 골라내기 (사용자가 정리한 마감일은 덮어쓰지 않음) |
 | `magami/notify.py` | 새 공지 이메일 알림 (Gmail 앱 비밀번호) |
 | `magami/extract.py` | 공지 본문(+포스터)을 Gemini로 정리해 [`docs/schema.md`](../docs/schema.md) 형식 JSON으로 만든다. 프롬프트는 [`prompts/extract_notice.md`](../prompts/extract_notice.md)를 쓴다 |
