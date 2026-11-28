@@ -5,6 +5,7 @@
 
 import sys
 import unittest
+from datetime import date
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
@@ -79,6 +80,135 @@ class RobotsAllowsTest(unittest.TestCase):
 
     def test_no_rules_allows(self):
         self.assertTrue(ch.robots_allows([], "/anything"))
+
+
+# ---------------------------------------------------------------- 메인 페이지 파싱
+# 실제 사업단 메인 페이지 구조를 흉내 낸 가짜 HTML (네 가지 날짜 표시 방식)
+
+BASE = "https://www.dju.ac.kr/sw/main.do"
+TODAY = date(2026, 11, 28)
+
+# ① 링크 옆 <p class="date">YYYY-MM-DD</p>
+PAGE_DATE_CLASS = """
+<div class="A04_NoticeBox tabBox">
+  <h3 class="tit_1"><a class="current" href="#">공지사항</a></h3>
+  <div class="list_box on"><ul>
+    <li><a href="/sw/na/ntt/selectNttInfo.do?nttSn=555675&amp;mi=7358&amp;bbsId=2758">
+        ★[SW중심대학사업단] 공간 사용 신청서 양식★
+      </a><p class="date">2026-11-26</p></li>
+    <li><a href="/sw/na/ntt/selectNttInfo.do?nttSn=555459&amp;mi=7358&amp;bbsId=2758">
+        [SW중심대학사업단] 아이디어 공모전 개최 안내</a><p class="date">2026-11-17</p></li>
+  </ul>
+  <a class="btn_more" href="/sw/na/ntt/selectNttList.do?bbsId=2758&amp;mi=7358">공지사항 more</a>
+  </div>
+  <h3 class="tit_2"><a href="#">자료실</a></h3>
+  <div class="list_box"><ul>
+    <li><a href="/sw/na/ntt/selectNttInfo.do?nttSn=1&amp;mi=1">자료실 글</a><p class="date">2026-01-01</p></li>
+  </ul></div>
+</div>
+"""
+
+# ② 맨 위 강조 글: dt 제목 + .txt 미리보기 + <span class="month/day"> (연도 없음)
+#    목록 글: 제목<p>YYYY.MM.DD</p>
+PAGE_MONTH_DAY = """
+<div class="B01_Notice tabBox">
+  <h2 class="tit_1"><a class="current" href="#">공지사항</a></h2>
+  <div class="list_box on">
+    <div class="top_list"><a href="/biohealth/na/ntt/selectNttInfo.do?nttSn=555538&amp;mi=5702">
+      <dl><dt>혁신인재지원금 신청 안내</dt>
+        <dd><p class="txt">신청기간 : ~2026.12.31.(목) 신청방법 : 온라인 폼</p>
+          <p class="date"><span class="month">11</span><span class="day">23</span></p></dd></dl>
+    </a></div>
+    <ul>
+      <li><a href="/biohealth/na/ntt/selectNttInfo.do?nttSn=555211&amp;mi=5702">
+        [바이오헬스] 특별 강연 안내 (11/04 수 14시)<p>2026.11.03</p></a></li>
+    </ul>
+  </div>
+</div>
+"""
+
+# ③ 맨 위 강조 글: <dd class="date">, 목록 글: p.tit + 이름 없는 <span>
+PAGE_SPAN = """
+<div class="tabBox">
+  <h3><a href="#">공지사항</a></h3>
+  <div class="list_box on">
+    <div class="top_list"><a href="/djurise/na/ntt/selectNttInfo.do?nttSn=555633&amp;mi=7449">
+      <dl><dt>현장실습기관 박람회 사전신청 안내</dt>
+        <dd>신청기간 : 2026.11.24.(화) ~ 2026. 11. 30.(월)</dd>
+        <dd class="date">2026-11-24</dd></dl></a></div>
+    <ul><li><a href="/djurise/na/ntt/selectNttInfo.do?nttSn=555520&amp;mi=7449">
+      <p class="tit">동계 현장실습학기제 참여학생 모집 안내</p><span>2026-11-19</span></a></li></ul>
+  </div>
+</div>
+"""
+
+# ④ 칸 이름이 '공지사항'이 아닌 사이트 (대학혁신: '사업단소식')
+PAGE_OTHER_TAB = """
+<div class="F01_Notice tabBox">
+  <h2>Notice</h2>
+  <h3 class="tit_1"><a class="currect" href="javascript:" title="사업단소식">사업단소식</a></h3>
+  <div class="list_box on"><ul>
+    <li><a href="/inno/na/ntt/selectNttInfo.do?nttSn=555560&amp;mi=1035&amp;bbsId=1004">
+      <p class="tit">[2026년 11월] 프로그램 운영 일정</p><span class="date">2026-11-20</span>
+      <p class="con">2026.12.31까지 신청</p></a></li>
+  </ul></div>
+</div>
+"""
+
+
+class ParseMainPageTest(unittest.TestCase):
+    def parse(self, html, tab="공지사항", base=BASE, channel="SW중심대학사업단"):
+        return ch.parse_main_page(html, base, channel, tab=tab, today=TODAY)
+
+    def test_date_class_and_only_notice_tab(self):
+        notices = self.parse(PAGE_DATE_CLASS)
+        self.assertEqual([n["id"] for n in notices], ["homepage_sw_555675", "homepage_sw_555459"])
+        first = notices[0]
+        self.assertEqual(first["title"], "★[SW중심대학사업단] 공간 사용 신청서 양식★")
+        self.assertEqual(first["posted_at"], "2026-11-26")
+        self.assertEqual(
+            first["url"],
+            "https://www.dju.ac.kr/sw/na/ntt/selectNttInfo.do?nttSn=555675&mi=7358&bbsId=2758",
+        )
+
+    def test_schema_fields(self):
+        notice = self.parse(PAGE_DATE_CLASS)[0]
+        self.assertEqual(notice["source"], "auto")
+        self.assertEqual(notice["channel"], "SW중심대학사업단")
+        for key in ("is_notice", "apply_start", "apply_end", "deadline", "deadline_time", "target", "how_to_apply"):
+            self.assertIsNone(notice[key], key)
+        self.assertTrue(notice["collected_at"].endswith("+09:00"))
+
+    def test_month_day_and_preview_date_ignored(self):
+        top, item = self.parse(PAGE_MONTH_DAY)
+        self.assertEqual(top["title"], "혁신인재지원금 신청 안내")
+        self.assertEqual(top["posted_at"], "2026-11-23")  # 미리보기 속 2026.12.31이 아님
+        self.assertEqual(item["title"], "[바이오헬스] 특별 강연 안내 (11/04 수 14시)")
+        self.assertEqual(item["posted_at"], "2026-11-03")
+
+    def test_month_day_uses_last_year_when_in_future(self):
+        notices = ch.parse_main_page(PAGE_MONTH_DAY, BASE, "x", today=date(2026, 1, 5))
+        self.assertEqual(notices[0]["posted_at"], "2025-11-23")
+
+    def test_dd_date_and_plain_span(self):
+        top, item = self.parse(PAGE_SPAN)
+        self.assertEqual(top["posted_at"], "2026-11-24")
+        self.assertEqual(item["title"], "동계 현장실습학기제 참여학생 모집 안내")
+        self.assertEqual(item["posted_at"], "2026-11-19")
+
+    def test_other_tab_name(self):
+        notices = self.parse(PAGE_OTHER_TAB, tab="사업단소식", base="https://www.dju.ac.kr/inno/main.do")
+        self.assertEqual(len(notices), 1)
+        self.assertEqual(notices[0]["id"], "homepage_inno_555560")
+        self.assertEqual(notices[0]["posted_at"], "2026-11-20")  # .con 속 날짜가 아님
+
+    def test_missing_tab_raises(self):
+        with self.assertRaises(ValueError):
+            self.parse(PAGE_OTHER_TAB)  # '공지사항' 칸이 없는 페이지
+
+    def test_list_and_more_links_not_collected(self):
+        urls = [n["url"] for n in self.parse(PAGE_DATE_CLASS)]
+        self.assertFalse(any("selectNttList" in u for u in urls))
 
 
 if __name__ == "__main__":

@@ -8,6 +8,10 @@
 from __future__ import annotations
 
 import re
+from datetime import date
+from urllib.parse import urljoin
+
+from .extract import make_notice
 
 # ---------------------------------------------------------------- robots.txt
 
@@ -62,3 +66,127 @@ def robots_allows(rules: list[tuple[str, str]], path: str) -> bool:
             if best is None or candidate > best:
                 best = candidate
     return best is None or best[1]
+
+
+# ---------------------------------------------------------------- 메인 페이지 파싱
+
+NOTICE_LINK = "selectNttInfo.do"  # 게시글 링크 (주소만 저장하고 열지 않는다)
+DEFAULT_TAB = "공지사항"
+_FULL_DATE_RE = re.compile(r"^\s*(\d{4})\s*[-./]\s*(\d{1,2})\s*[-./]\s*(\d{1,2})\s*\.?\s*$")
+# 본문 미리보기·요약 칸: 이 안의 날짜(예: 신청마감 12.31)는 게시일이 아니다
+_PREVIEW_CLASSES = ("txt", "con")
+
+
+def _full_date(text: str) -> str | None:
+    """글자 전체가 날짜일 때만 'YYYY-MM-DD'로 돌려준다."""
+    m = _FULL_DATE_RE.match(text or "")
+    if not m:
+        return None
+    try:
+        return date(int(m[1]), int(m[2]), int(m[3])).isoformat()
+    except ValueError:
+        return None
+
+
+def _month_day(month: int, day: int, today: date) -> str | None:
+    """연도가 없는 '11월 23일'을 오늘 기준 가장 가까운 과거(오늘 포함) 날짜로 본다."""
+    for year in (today.year, today.year - 1):
+        try:
+            candidate = date(year, month, day)
+        except ValueError:
+            continue
+        if candidate <= today:
+            return candidate.isoformat()
+    return None
+
+
+def _in_preview(tag, stop) -> bool:
+    for parent in tag.parents:
+        if parent is stop:
+            return False
+        if any(c in (parent.get("class") or []) for c in _PREVIEW_CLASSES):
+            return True
+    return False
+
+
+def _posted_at(item, today: date) -> str | None:
+    """공지 한 칸에서 게시일을 찾는다. .date 요소 → 날짜만 적힌 요소 순서."""
+    for tag in item.select(".date"):
+        if _in_preview(tag, item):
+            continue
+        month, day = tag.select_one(".month"), tag.select_one(".day")
+        if month and day:
+            try:
+                return _month_day(int(month.get_text(strip=True)), int(day.get_text(strip=True)), today)
+            except ValueError:
+                return None
+        found = _full_date(tag.get_text(" ", strip=True))
+        if found:
+            return found
+    for tag in item.find_all(["p", "span", "dd", "em"]):
+        if any(c in (tag.get("class") or []) for c in _PREVIEW_CLASSES) or _in_preview(tag, item):
+            continue
+        found = _full_date(tag.get_text(" ", strip=True))
+        if found:
+            return found
+    return None
+
+
+def _title(link) -> str | None:
+    """제목: dt → p.tit → 링크 글자(날짜만 적힌 부분은 뺌) 순서."""
+    for selector in ("dt", ".tit"):
+        tag = link.select_one(selector)
+        if tag and tag.get_text(strip=True):
+            return " ".join(tag.get_text(" ", strip=True).split())
+    parts = []
+    for child in link.children:
+        if getattr(child, "name", None) is None:
+            parts.append(str(child))
+        elif not _full_date(child.get_text(" ", strip=True)):
+            parts.append(child.get_text(" ", strip=True))
+    text = " ".join(" ".join(parts).split())
+    return text or None
+
+
+def _notice_box(soup, tab: str):
+    """제목이 tab인 h2/h3 바로 다음의 div.list_box."""
+    for heading in soup.find_all(["h2", "h3"]):
+        if heading.get_text(strip=True) == tab:
+            return heading.find_next("div", class_="list_box")
+    return None
+
+
+def parse_main_page(html: str, base_url: str, channel: str, tab: str = DEFAULT_TAB, today: date | None = None) -> list[dict]:
+    """메인 페이지 HTML에서 tab 칸의 공지 목록을 docs/schema.md 형식으로 돌려준다.
+
+    제목·게시일·원문 링크만 채운다. 공지인지(is_notice)와 마감일 등은 본문을 정리하기
+    전까지 알 수 없으므로 비워 둔다(None). 칸을 찾지 못하면 ValueError.
+    """
+    from bs4 import BeautifulSoup
+
+    today = today or date.today()
+    soup = BeautifulSoup(html, "html.parser")
+    box = _notice_box(soup, tab)
+    if box is None:
+        raise ValueError(f"메인 페이지에서 '{tab}' 칸을 찾지 못했습니다: {base_url}")
+
+    notices, seen = [], set()
+    for link in box.find_all("a", href=True):
+        href = link["href"].replace("&amp;", "&")
+        if NOTICE_LINK not in href:
+            continue
+        url = urljoin(base_url, href)
+        if url in seen:
+            continue
+        seen.add(url)
+        item = link.find_parent("li") or link.find_parent(class_="top_list") or link
+        notices.append(
+            make_notice(
+                {"title": _title(link), "is_notice": None},
+                url=url,
+                source="auto",
+                channel=channel,
+                posted_at=_posted_at(item, today),
+            )
+        )
+    return notices
