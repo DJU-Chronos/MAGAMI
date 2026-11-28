@@ -12,6 +12,7 @@
 | google-auth-oauthlib | 1.5.0 | https://github.com/googleapis/google-auth-library-python-oauthlib | Apache-2.0 | 구글 계정 로그인 | 가능 |
 | Google Gen AI SDK (google-genai) | 2.30.1 | https://github.com/googleapis/python-genai | Apache-2.0 | Gemini API 호출 | 가능 |
 | python-dotenv | 1.2.3 | https://github.com/theskumar/python-dotenv | BSD-3-Clause | `.env`에서 API 키 읽기 | 가능 |
+| Mozilla Readability | 0.6.0 | https://github.com/mozilla/readability | Apache-2.0 | 크롬 확장에서 공지 본문 추출 (`extension/vendor/`) | 가능 |
 | PyYAML | 6.0.3 | https://github.com/yaml/pyyaml | MIT | 채널 목록 파일 읽기 | 가능 |
 
 ## 외부 서비스 이용 조건

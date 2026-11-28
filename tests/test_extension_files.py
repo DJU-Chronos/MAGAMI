@@ -22,6 +22,22 @@ class ExtensionFilesTest(unittest.TestCase):
         self.assertNotIn("content_scripts", manifest)
         self.assertNotIn("tabs", manifest["permissions"])
 
+    def test_vendor_readability_has_license(self):
+        vendor = ROOT / "extension" / "vendor"
+        source = (vendor / "Readability.js").read_text(encoding="utf-8")
+        self.assertIn("Licensed under the Apache License, Version 2.0", source)
+        self.assertTrue((vendor / "Readability.LICENSE.md").exists())
+        oss = (ROOT / "docs" / "oss-license-check.md").read_text(encoding="utf-8")
+        self.assertIn("Mozilla Readability", oss)
+
+    def test_popup_loads_scripts_in_order(self):
+        html = (ROOT / "extension" / "popup.html").read_text(encoding="utf-8")
+        self.assertLess(html.index('src="lib.js"'), html.index('src="popup.js"'))
+        popup = (ROOT / "extension" / "popup.js").read_text(encoding="utf-8")
+        # Readability는 버튼을 눌렀을 때만 현재 탭에 넣는다
+        self.assertIn('files: ["vendor/Readability.js"]', popup)
+        self.assertIn("cloneNode(true)", popup)
+
 
 if __name__ == "__main__":
     unittest.main()
