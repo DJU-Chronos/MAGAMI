@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>마감이 설정</title>
+  <style>
+    body { max-width: 520px; margin: 32px auto; padding: 0 16px; font: 14px/1.6 "Malgun Gothic", system-ui, sans-serif; color: #1d1d1f; }
+    label { display: block; margin: 16px 0 4px; font-weight: 600; }
+    input { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #ccc; border-radius: 6px; font: inherit; }
+    button { margin-top: 16px; padding: 8px 14px; border: 0; border-radius: 6px; background: #2f6fde; color: #fff; font: inherit; cursor: pointer; }
+    .hint { color: #555; font-size: 13px; }
+    #saved { color: #1a7f37; margin-left: 8px; }
+  </style>
+</head>
+<body>
+  <h1>마감이 설정</h1>
+  <p class="hint">API 키는 이 브라우저에만 저장되고, Gemini에 요청할 때만 쓰입니다. 레포나 다른 곳으로 보내지 않습니다.</p>
+
+  <label for="api-key">Gemini API 키</label>
+  <input id="api-key" type="password" autocomplete="off" placeholder="Google AI Studio에서 발급한 키">
+  <p class="hint">발급: Google AI Studio → Get API key. 키는 다른 사람과 공유하지 마세요.</p>
+
+  <label for="model">모델 (선택)</label>
+  <input id="model" type="text" placeholder="gemini-2.5-flash">
+  <p class="hint">비워 두면 기본 모델을 씁니다.</p>
+
+  <button id="save">저장</button><span id="saved" hidden>저장했습니다</span>
+
+  <script src="options.js"></script>
+</body>
+</html>
