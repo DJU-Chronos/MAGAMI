@@ -225,3 +225,7 @@ data/raw/
 # 마감이: 구글 로그인 토큰
 token.json
 credentials.json
+
+# 마감이: 내 컴퓨터에서 만든 공지 목록, 정확도 평가 중간 결과
+data/notices.json
+*_pred.json
