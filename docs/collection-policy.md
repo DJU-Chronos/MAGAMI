@@ -23,7 +23,12 @@
 
 | 채널 | 메인 주소 | robots.txt 결과 | 이용약관 결과 | 수집 범위 | 확인일 | 확인자 |
 |---|---|---|---|---|---|---|
-|  |  |  |  |  |  |  |
+| SW중심대학사업단 | https://www.dju.ac.kr/sw/main.do | 메인 허용, `/*/na/ntt/` 금지 | 이용약관·저작권 정책 페이지 없음, 하단 저작권 표시(All Rights Reserved)만 있음 | 메인 공지 칸 제목·날짜·링크 | 2026-11-28 | 이혜령 |
+| 앵커사업단(RISE) | https://www.dju.ac.kr/djurise/main.do | 메인 허용, `/*/na/ntt/` 금지 | 이용약관·저작권 정책 페이지 없음, 하단 저작권 표시(All Rights Reserved)만 있음 | 메인 공지 칸 제목·날짜·링크 | 2026-11-28 | 이혜령 |
+| 대학혁신지원사업 | https://www.dju.ac.kr/inno/main.do | 메인 허용, `/*/na/ntt/` 금지 | 이용약관·저작권 정책 페이지 없음, 하단 저작권 표시(All Rights Reserved)만 있음 | 메인 공지 칸 제목·날짜·링크 | 2026-11-28 | 이혜령 |
+| HRD사업단 | https://www.dju.ac.kr/hrd/main.do | 메인 허용, `/*/na/ntt/` 금지 | 이용약관·저작권 정책 페이지 없음, 하단 저작권 표시(All Rights Reserved)만 있음 | 메인 공지 칸 제목·날짜·링크 | 2026-11-28 | 이혜령 |
+| 바이오헬스혁신융합대학사업단 | https://www.dju.ac.kr/biohealth/main.do | 메인 허용, `/*/na/ntt/` 금지 | 이용약관·저작권 정책 페이지 없음, 하단 저작권 표시(All Rights Reserved)만 있음 | 메인 공지 칸 제목·날짜·링크 | 2026-11-28 | 이혜령 |
+| 사물인터넷혁신융합대학사업단 | https://www.dju.ac.kr/IoTCOSS/main.do | 메인 허용, `/*/na/ntt/` 금지 | 이용약관·저작권 정책 페이지 없음, 하단 저작권 표시(All Rights Reserved)만 있음, 이메일무단수집거부 고지 있음(수집 범위에 이메일 없음) | 메인 공지 칸 제목·날짜·링크 | 2026-11-28 | 이혜령 |
 
 ## 인스타그램 확인 결과
 
