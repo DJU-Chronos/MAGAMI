@@ -1,5 +1,5 @@
 body {
-  width: 340px;
+  width: 360px;
   margin: 0;
   padding: 12px 14px 14px;
   font: 13px/1.5 "Pretendard", "Malgun Gothic", system-ui, sans-serif;
@@ -13,8 +13,11 @@ header {
   margin-bottom: 8px;
 }
 header strong { font-size: 15px; }
-header a { color: #666; font-size: 12px; }
+header nav { display: flex; gap: 10px; }
+header a { color: #555; font-size: 12px; }
+h2 { font-size: 14px; margin: 4px 0; }
 .hint { color: #555; margin: 4px 0 10px; }
+.tiny { color: #888; font-size: 11px; margin: 4px 0; }
 .check { display: flex; gap: 6px; align-items: flex-start; margin-bottom: 10px; color: #333; }
 button, .button {
   display: inline-block;
@@ -32,9 +35,27 @@ button, .button {
 .status { padding: 8px; border-radius: 6px; background: #f2f5fb; }
 .status.error { background: #fdecec; color: #9b1c1c; }
 .warn { padding: 6px 8px; border-radius: 6px; background: #fff6e0; color: #7a5200; }
-dl { display: grid; grid-template-columns: 64px 1fr; gap: 4px 8px; margin: 8px 0; }
-dt { color: #777; }
-dd { margin: 0; word-break: break-all; }
-dd.big { font-size: 16px; font-weight: 700; }
-.buttons { display: flex; flex-wrap: wrap; gap: 6px; }
+form label { display: block; margin: 6px 0; color: #555; font-size: 12px; }
+form input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 2px;
+  padding: 5px 6px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font: inherit;
+  color: #1d1d1f;
+}
+form input[name="deadline"] { font-weight: 700; }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.buttons { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .buttons .disabled { pointer-events: none; opacity: 0.4; }
+#saved-list { list-style: none; padding: 0; margin: 0; max-height: 320px; overflow-y: auto; }
+#saved-list li { padding: 8px 0; border-bottom: 1px solid #eee; }
+#saved-list .dday { display: inline-block; min-width: 48px; font-weight: 700; color: #2f6fde; }
+#saved-list .dday.past { color: #999; }
+#saved-list .dday.soon { color: #c0392b; }
+#saved-list .meta { color: #777; font-size: 12px; }
+#saved-list .actions { display: flex; gap: 8px; margin-top: 2px; font-size: 12px; }
+#saved-list .actions button { padding: 0; border: 0; background: none; color: #c0392b; cursor: pointer; }
