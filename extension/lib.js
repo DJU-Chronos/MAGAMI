@@ -161,8 +161,40 @@ const MAGAMI = (() => {
     return `https://calendar.google.com/calendar/render?${params.toString()}`;
   }
 
+  // 사용자가 결과 카드에서 고친 값을 반영한다. 빈칸은 null, 날짜·시각은 형식을 다시 맞춘다.
+  const EDITABLE = {
+    title: cleanText, target: cleanText, how_to_apply: cleanText,
+    apply_start: normalizeDate, apply_end: normalizeDate, deadline: normalizeDate,
+    deadline_time: normalizeTime,
+  };
+  function applyEdits(notice, edits) {
+    const out = { ...notice };
+    for (const [key, fix] of Object.entries(EDITABLE)) {
+      if (key in edits) out[key] = edits[key] === "" ? null : fix(edits[key]);
+    }
+    // AI가 '공지 아님'으로 봤어도 사용자가 마감일을 넣었으면 공지로 본다
+    if (out.deadline) out.is_notice = true;
+    return out;
+  }
+
+  // "내 마감 목록": 같은 공지(id)는 최신 값으로 바꾸고, 마감일 빠른 순(마감일 없으면 맨 뒤)으로 정렬
+  function upsertSaved(list, notice) {
+    const rest = (list || []).filter((n) => n.id !== notice.id);
+    return sortSaved([...rest, notice]);
+  }
+  function sortSaved(list) {
+    return [...list].sort((a, b) => (a.deadline || "9999-99-99").localeCompare(b.deadline || "9999-99-99"));
+  }
+  // 오늘 기준 남은 날짜 (D-day). 마감일 없으면 null
+  function daysLeft(deadline, today) {
+    if (!deadline) return null;
+    const toUtc = (s) => { const [y, m, d] = s.split("-").map(Number); return Date.UTC(y, m - 1, d); };
+    return Math.round((toUtc(deadline) - toUtc(today)) / 86400000);
+  }
+
   return {
     AI_FIELDS, SCHEMA_ORDER, normalizeDate, normalizeTime, parseResponse,
     makeId, makeNotice, buildUserMessage, calendarUrl, nowKst, todayKst,
+    applyEdits, upsertSaved, sortSaved, daysLeft,
   };
 })();
